@@ -1,4 +1,4 @@
-#Text Editor
+# Text Editor
 
 A little side project i made when i was bored
 I followed the tutorial from the build your own x repo

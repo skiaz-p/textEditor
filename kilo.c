@@ -147,8 +147,31 @@ void abFree(struct buffer *ab){
     free(ab->b);
 }
 
-/
+/*** output ***/
 
+void BuffeditorDrawRows(struct buffer *ab){
+    int y;
+    for(y=0; y < E.screenRows; y++){
+      BuffAppend(ab, "~", 1);
+
+      if(y < E.screenRows - 1){
+        BuffAppend(ab, "\r\n" ,2);
+      }
+    }
+}
+
+void BuffeditorRefreshScreen(){
+  struct buffer ab= buffer_INIT;
+  BuffAppend(&ab, "\x1b[2J", 4);
+  BuffAppend(&ab, "\x1b[H", 3);
+
+  editorDrawRows(&ab);
+
+  BuffAppend(&ab, "\x1b[H", 3);
+
+  write(STDOUT_FILENO, ab.b, ab.size);
+  abFree(&ab);
+}
 /*** Init ***/
 
 void InitEditor(){

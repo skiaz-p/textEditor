@@ -5,7 +5,7 @@
 
 
 /*** includes ***/
-
+#include <string.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -21,7 +21,7 @@
 /*** Data ***/
 struct editorConfig{
   int screenRows;
-  int sreenCols;
+  int screenCols;
   struct termios native_termios;
 };
 struct editorConfig E;
@@ -79,7 +79,11 @@ void editorProcessKeypress() {
 void editorDrawRows() {
   int y;
   for (y = 0; y < E.screenRows; y++) {
-    write(STDOUT_FILENO, "~\r\n", 3);
+    write(STDOUT_FILENO, "~", 1);
+
+    if(y < E.screenRows -1);{
+      write(STDOUT_FILENO, "\r\n", 2);
+    }
   }
 }
 
@@ -93,21 +97,19 @@ void editorRefreshScreen() {
 }
 
 int getCursorPosition(int *rows, int *cols){
-  char buf
+  char buf[32];
+  unsigned int i = 0;
   if(write(STDOUT_FILENO, "\x1b[6n", 4) != 4) return -1;
 
-  printf("\r\n");
-  char c;
-  while (read(STDIN_FILENO, &c, 1) == 1){
-    if(iscntrl(c)){
-      printf("%d\r\n",c);
-    }else{
-      printf("%d ('%c')\r\n",c,c);
-    }
+  while (i<sizeof(buf) - 1){
+    if(read(STDIN_FILENO, &buf[i], 1) != 1) break;
+    if(buf[i] == 'R') break;
+    i++;
   }
-
-  editorReadKey();
-  return -1;
+  buf[i] = '\0';
+  if(buf[0] != '\x1b' || buf[1] != '[') return -1;
+  if (sscanf(&buf[2], "%d%d", rows, cols) != 2) return -1;
+  return 0;
 }
 
 int getWindowSize(int *rows, int *cols){
@@ -123,13 +125,34 @@ int getWindowSize(int *rows, int *cols){
 }
 
 
+/*** Append Buffer ***/
 
+struct buffer
+{
+  char* b;
+  int size;
+};
+#define buffer_INIT {NULL, 0}
 
+void BuffAppend(struct buffer *ab, const char *s, int size){
+  char *new = realloc(ab->b, ab->size + size);
+
+  if (new == NULL ) return;
+  memcpy(&new[ab->size], s, size);
+  ab->b = new;
+  ab->size += size;
+}
+
+void abFree(struct buffer *ab){
+    free(ab->b);
+}
+
+/
 
 /*** Init ***/
 
 void InitEditor(){
-  if(getWindowSize(&E.screenRows, &E.sreenCols) == -1) die("getWindowSize");
+  if(getWindowSize(&E.screenRows, &E.screenCols) == -1) die("getWindowSize");
 }
 
 int main(){
